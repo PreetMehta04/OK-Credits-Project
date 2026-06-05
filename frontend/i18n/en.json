@@ -1,0 +1,48 @@
+{
+  "nav": {
+    "collection": "Collection",
+    "ai_stylist": "AI Stylist",
+    "tryon": "Try-On",
+    "admin": "Admin",
+    "login": "Sign In",
+    "get_started": "Get Started"
+  },
+  "hero": {
+    "headline": "Discover Your Perfect Saree",
+    "subtitle": "with AI Intelligence",
+    "cta_stylist": "Try AI Stylist",
+    "cta_tryon": "Virtual Try-On"
+  },
+  "chat": {
+    "placeholder": "Tell me your occasion, budget, fabric preference...",
+    "greeting": "Namaste! I'm your AI Saree Stylist. What occasion are you shopping for?",
+    "new_session": "New Session",
+    "print_slip": "Print Slip"
+  },
+  "filters": {
+    "title": "Filters",
+    "clear_all": "Clear all",
+    "price_range": "Price Range",
+    "category": "Category",
+    "fabric": "Fabric",
+    "occasion": "Occasion",
+    "regional_style": "Regional Style"
+  },
+  "product": {
+    "in_stock": "In Stock",
+    "out_of_stock": "Out of Stock",
+    "only_left": "Only {{count}} left",
+    "try_on": "Virtual Try-On",
+    "add_wishlist": "Add to Wishlist",
+    "match": "match"
+  },
+  "tryon": {
+    "title": "Virtual Saree Try-On",
+    "step1": "Upload Photo",
+    "step2": "Select Saree",
+    "step3": "Generate Try-On",
+    "upload_title": "Upload Your Photo",
+    "generating": "Generating your try-on...",
+    "complete": "Try-On Complete!"
+  }
+}
