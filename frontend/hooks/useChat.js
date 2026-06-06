@@ -43,9 +43,7 @@ export default function useChat() {
         },
       ]);
 
-      if (data.recommendations?.length > 0) {
-        setRecommendations(data.recommendations);
-      }
+      setRecommendations(data.recommendations || []);
     } catch (err) {
       // Fallback: demo mode without backend
       const DEMO_RESPONSES = [

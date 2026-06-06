@@ -5,10 +5,39 @@ import { motion } from 'framer-motion';
 import { Camera, Star, Tag } from 'lucide-react';
 import clsx from 'clsx';
 
-export default function ProductCard({ product, compact = false, showTryOn = false, showCode = false }) {
+export default function ProductCard({ product, compact = false, showTryOn = false, showCode = false, selectable = false }) {
   const imageUrl = product.images?.[0]?.url || `https://picsum.photos/seed/${product.id || 'saree'}/300/400`;
   const price = Number(product.price).toLocaleString('en-IN');
   const discountPrice = product.discount_price ? Number(product.discount_price).toLocaleString('en-IN') : null;
+
+  const ImageSection = (
+    <div className={clsx('relative overflow-hidden', compact ? 'h-40' : 'h-64')}>
+      <Image
+        src={imageUrl}
+        alt={product.name}
+        fill
+        className="object-cover transition-transform duration-500 hover:scale-105"
+      />
+      {/* Match score badge */}
+      {product.match_score && (
+        <div className="absolute top-2 right-2 glass-gold rounded-full px-2 py-0.5 text-xs font-semibold text-yellow-400">
+          {Math.round(product.match_score * 100)}% match
+        </div>
+      )}
+      {/* Stock badge */}
+      {product.stock_quantity <= 3 && product.stock_quantity > 0 && (
+        <div className="absolute top-2 left-2 bg-red-500/90 rounded-full px-2 py-0.5 text-xs text-white">
+          Only {product.stock_quantity} left
+        </div>
+      )}
+    </div>
+  );
+
+  const titleSection = (
+    <h3 className={clsx('font-semibold text-white leading-tight truncate', compact ? 'text-xs' : 'text-sm')}>
+      {product.name}
+    </h3>
+  );
 
   return (
     <motion.div
@@ -18,28 +47,7 @@ export default function ProductCard({ product, compact = false, showTryOn = fals
         compact ? 'text-sm' : ''
       )}
     >
-      <Link href={`/products/${product.id}`}>
-        <div className={clsx('relative overflow-hidden', compact ? 'h-40' : 'h-64')}>
-          <Image
-            src={imageUrl}
-            alt={product.name}
-            fill
-            className="object-cover transition-transform duration-500 hover:scale-105"
-          />
-          {/* Match score badge */}
-          {product.match_score && (
-            <div className="absolute top-2 right-2 glass-gold rounded-full px-2 py-0.5 text-xs font-semibold text-yellow-400">
-              {Math.round(product.match_score * 100)}% match
-            </div>
-          )}
-          {/* Stock badge */}
-          {product.stock_quantity <= 3 && product.stock_quantity > 0 && (
-            <div className="absolute top-2 left-2 bg-red-500/90 rounded-full px-2 py-0.5 text-xs text-white">
-              Only {product.stock_quantity} left
-            </div>
-          )}
-        </div>
-      </Link>
+      {selectable ? ImageSection : <Link href={`/products/${product.id}`}>{ImageSection}</Link>}
 
       <div className="p-3">
         {showCode && (
@@ -49,11 +57,7 @@ export default function ProductCard({ product, compact = false, showTryOn = fals
           </div>
         )}
 
-        <Link href={`/products/${product.id}`}>
-          <h3 className={clsx('font-semibold text-white leading-tight truncate', compact ? 'text-xs' : 'text-sm')}>
-            {product.name}
-          </h3>
-        </Link>
+        {selectable ? titleSection : <Link href={`/products/${product.id}`}>{titleSection}</Link>}
 
         <p className="text-slate-500 text-xs capitalize mt-0.5">{product.fabric}</p>
 

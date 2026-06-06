@@ -1,8 +1,7 @@
 import uuid
 from datetime import datetime
 from sqlalchemy import Column, String, DateTime, Integer, JSON, Enum as SAEnum, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID
-from app.database import Base
+from app.database import Base, GUID
 import enum
 
 
@@ -16,8 +15,8 @@ class TryOnStatus(str, enum.Enum):
 class RecommendationSession(Base):
     __tablename__ = "recommendation_sessions"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    user_id = Column(GUID(), ForeignKey("users.id"), nullable=True)
     session_token = Column(String(64), unique=True, index=True)
     preferences = Column(JSON, nullable=True)
     conversation_history = Column(JSON, default=list)
@@ -29,9 +28,9 @@ class RecommendationSession(Base):
 class TryOnJob(Base):
     __tablename__ = "tryon_jobs"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
-    product_id = Column(UUID(as_uuid=True), ForeignKey("products.id"), nullable=False)
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    user_id = Column(GUID(), ForeignKey("users.id"), nullable=True)
+    product_id = Column(GUID(), ForeignKey("products.id"), nullable=False)
     input_image_url = Column(String, nullable=False)
     output_image_url = Column(String, nullable=True)
     status = Column(SAEnum(TryOnStatus), default=TryOnStatus.queued)
@@ -42,9 +41,9 @@ class TryOnJob(Base):
 class AnalyticsEvent(Base):
     __tablename__ = "analytics_events"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
     event_type = Column(String(50), nullable=False, index=True)
-    user_id = Column(UUID(as_uuid=True), nullable=True)
-    product_id = Column(UUID(as_uuid=True), nullable=True)
-    metadata = Column(JSON, nullable=True)
+    user_id = Column(GUID(), nullable=True)
+    product_id = Column(GUID(), nullable=True)
+    event_metadata = Column("metadata", JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, index=True)

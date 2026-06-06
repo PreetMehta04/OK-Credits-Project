@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, use } from 'react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -8,7 +8,8 @@ import { QRCodeSVG } from 'qrcode.react';
 import { useProduct } from '@/hooks/useRecommendations';
 
 export default function ProductDetailPage({ params }) {
-  const { product, isLoading } = useProduct(params.id);
+  const { id } = use(params);
+  const { product, isLoading } = useProduct(id);
   const [activeImg, setActiveImg] = useState(0);
 
   if (isLoading) {

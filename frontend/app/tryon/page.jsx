@@ -94,7 +94,7 @@ export default function TryOnPage() {
                         : 'border-transparent hover:border-yellow-400/50'
                     }`}
                   >
-                    <ProductCard product={product} compact />
+                    <ProductCard product={product} compact selectable />
                   </div>
                 ))}
               </div>

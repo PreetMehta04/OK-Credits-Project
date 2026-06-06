@@ -1,5 +1,8 @@
+from pathlib import Path
 from pydantic_settings import BaseSettings
 from typing import List
+
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 class Settings(BaseSettings):
@@ -9,7 +12,7 @@ class Settings(BaseSettings):
     ALLOWED_ORIGINS: List[str] = ["http://localhost:3000"]
 
     # Database
-    DATABASE_URL: str = "postgresql+asyncpg://sareeai:sareeai123@localhost:5432/sareeai"
+    DATABASE_URL: str = f"sqlite+aiosqlite:///{BASE_DIR / 'backend.db'}"
     REDIS_URL: str = "redis://localhost:6379/0"
 
     # JWT

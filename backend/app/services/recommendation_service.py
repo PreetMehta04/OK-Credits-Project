@@ -3,6 +3,7 @@ Recommendation Service — orchestrates AI recommendation pipeline.
 Calls AI service for embeddings and ranking.
 """
 import httpx
+import re
 import secrets
 from typing import Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -58,16 +59,38 @@ class RecommendationService:
         # How to activate: see ai_services/nlp/multilingual.py
         # ============================================================
         # PLACEHOLDER: English only response
-        ai_message, quick_replies = self._generate_response_mock(step, preferences)
+        ai_message, quick_replies = self._generate_response_mock(step, preferences, request.message)
 
         history.append({"role": "assistant", "content": ai_message})
         session.conversation_history = history
 
-        # Fetch recommendations if enough preferences collected
         recommendations = []
-        if step >= 2 and preferences.get("occasion"):
+        can_fetch = (
+            preferences.get("occasion")
+            and preferences.get("budget_max")
+            and preferences.get("fabric")
+            and not self._is_change_budget_request(request.message.lower())
+            and not self._is_change_fabric_request(request.message.lower())
+            and not self._is_restart_request(request.message.lower())
+        )
+
+        if can_fetch:
             recommendations = await self._fetch_recommendations(db, preferences)
             session.recommended_products = [r.id for r in recommendations]
+
+            if not recommendations:
+                if self._is_show_more_request(request.message.lower()):
+                    ai_message = (
+                        "I couldn't find more sarees with those filters. "
+                        "Would you like to change budget or fabric?"
+                    )
+                else:
+                    ai_message = (
+                        "I couldn't find a match for those preferences. "
+                        "Please try a different budget or fabric."
+                    )
+                quick_replies = ["Change budget", "Different fabric"]
+                history[-1]["content"] = ai_message
 
         await db.flush()
 
@@ -86,6 +109,15 @@ class RecommendationService:
         msg = message.lower()
         prefs = dict(existing)
 
+        if self._is_restart_request(msg):
+            prefs = {}
+
+        if self._is_change_budget_request(msg):
+            prefs.pop("budget_max", None)
+
+        if self._is_change_fabric_request(msg):
+            prefs.pop("fabric", None)
+
         # Occasion detection
         for occ in ["wedding", "party", "casual", "festive", "religious", "office"]:
             if occ in msg:
@@ -97,12 +129,23 @@ class RecommendationService:
                 prefs.setdefault("fabric", []).append(fab)
 
         # Budget detection
-        if "under 2000" in msg or "₹2000" in msg:
+        range_match = re.search(r"(\d[\d,]*)\s*[–-]\s*(\d[\d,]*)", msg)
+        if range_match:
+            low = int(range_match.group(1).replace(",", ""))
+            high = int(range_match.group(2).replace(",", ""))
+            prefs["budget_max"] = max(low, high)
+        elif "under 2000" in msg or "under ₹2000" in msg or "under rs 2000" in msg:
             prefs["budget_max"] = 2000
-        elif "5000" in msg:
+        elif "above 15000" in msg or "above ₹15000" in msg or "above rs 15000" in msg:
+            prefs["budget_max"] = 99999
+        elif "5000" in msg and "15000" not in msg:
             prefs["budget_max"] = 5000
-        elif "15000" in msg or "15,000" in msg:
+        elif "15000" in msg and "5000" not in msg:
             prefs["budget_max"] = 15000
+        else:
+            explicit_amount = re.search(r"₹?\s*([0-9][0-9,]*)", msg)
+            if explicit_amount:
+                prefs["budget_max"] = int(explicit_amount.group(1).replace(",", ""))
 
         # Color detection
         for color in ["red", "blue", "green", "pink", "gold", "white", "purple", "yellow"]:
@@ -111,36 +154,60 @@ class RecommendationService:
 
         return prefs
 
-    def _generate_response_mock(self, step: int, prefs: dict):
+    def _generate_response_mock(self, step: int, prefs: dict, message: str):
         """
         PLACEHOLDER for AI response generation.
         Returns scripted conversational responses.
         """
-        quick_replies = QUICK_REPLIES_BY_STEP.get(step, [])
+        msg = message.lower().strip()
 
-        if step == 1:
+        if self._is_restart_request(msg):
+            return (
+                "Sure, let's start fresh. What occasion are you shopping for?",
+                QUICK_REPLIES_BY_STEP[0],
+            )
+
+        if self._is_change_budget_request(msg):
+            return (
+                "Okay, what's your new budget range?",
+                QUICK_REPLIES_BY_STEP[1],
+            )
+
+        if self._is_change_fabric_request(msg):
+            return (
+                "Got it. Which fabric would you like this time?",
+                QUICK_REPLIES_BY_STEP[2],
+            )
+
+        if self._is_show_more_request(msg) and prefs.get("occasion") and prefs.get("budget_max") and prefs.get("fabric"):
+            return (
+                "Here are more saree recommendations for you! ✨",
+                ["Change budget", "Different fabric", "Show more options"],
+            )
+
+        if not prefs.get("occasion"):
             return (
                 "Wonderful! What is the occasion you're shopping for?",
                 QUICK_REPLIES_BY_STEP[0],
             )
-        if step == 2:
+
+        if not prefs.get("budget_max"):
             occ = prefs.get("occasion", ["this occasion"])[0]
             return (
                 f"Great choice for a {occ}! What is your budget range?",
                 QUICK_REPLIES_BY_STEP[1],
             )
-        if step == 3:
+
+        if not prefs.get("fabric"):
             return (
                 "Which fabric do you prefer?",
                 QUICK_REPLIES_BY_STEP[2],
             )
-        if step >= 4:
-            return (
-                "Here are your personalised saree recommendations based on your preferences! ✨",
-                ["Show more options", "Change budget", "Different fabric"],
-            )
 
-        return ("Hello! I'm your AI Saree Stylist. What brings you here today?", QUICK_REPLIES_BY_STEP[0])
+        return (
+            "Here are your personalised saree recommendations based on your preferences! ✨",
+            ["Show more options", "Change budget", "Different fabric"],
+        )
 
     async def _fetch_recommendations(
         self, db: AsyncSession, preferences: dict
@@ -185,6 +252,41 @@ class RecommendationService:
             recommendations.append(rec)
 
         return recommendations
+
+    def _is_change_budget_request(self, msg: str) -> bool:
+        return any(keyword in msg for keyword in [
+            "change budget",
+            "different budget",
+            "new budget",
+            "budget again",
+            "update budget",
+        ])
+
+    def _is_change_fabric_request(self, msg: str) -> bool:
+        return any(keyword in msg for keyword in [
+            "change fabric",
+            "different fabric",
+            "new fabric",
+            "fabric again",
+            "update fabric",
+        ])
+
+    def _is_show_more_request(self, msg: str) -> bool:
+        return any(keyword in msg for keyword in [
+            "show more",
+            "more options",
+            "more recommendations",
+            "show more options",
+        ])
+
+    def _is_restart_request(self, msg: str) -> bool:
+        return any(keyword in msg for keyword in [
+            "restart",
+            "start over",
+            "start again",
+            "new session",
+            "reset",
+        ])
 
     async def _get_or_create_session(
         self, db: AsyncSession, session_id: Optional[str]

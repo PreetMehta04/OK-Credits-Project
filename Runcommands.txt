@@ -1,0 +1,29 @@
+Front end
+---
+cd "d:\intern 2025\OK Credits Internship\code 2\OK_Credit_Project\frontend"
+npm install
+npm run dev
+---
+
+
+
+Backend
+---
+cd "d:\intern 2025\OK Credits Internship\code 2\OK_Credit_Project\backend"
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+---
+
+
+
+AI Service
+---
+cd "d:\intern 2025\OK Credits Internship\code 2\OK_Credit_Project\ai_services"
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+uvicorn main:app --reload --host 0.0.0.0 --port 8001
+---
+

@@ -4,8 +4,7 @@ from sqlalchemy import (
     Column, String, Boolean, DateTime, Numeric, Integer,
     Float, Text, Enum as SAEnum, JSON
 )
-from sqlalchemy.dialects.postgresql import UUID, ARRAY
-from app.database import Base
+from app.database import Base, GUID
 import enum
 
 
@@ -45,7 +44,7 @@ class RegionalStyle(str, enum.Enum):
 class Product(Base):
     __tablename__ = "products"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
     product_code = Column(String(20), unique=True, index=True, nullable=False)
     name = Column(String(200), nullable=False)
     category = Column(SAEnum(CategoryType), nullable=False)
