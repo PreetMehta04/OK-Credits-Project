@@ -97,7 +97,12 @@ export default function AdminDashboard() {
       if (formData.regionalStyle) formDataToSend.append('regional_style', formData.regionalStyle);
       formDataToSend.append('blouse_included', formData.blouseIncluded);
 
-      const response = await fetch('http://localhost:8000/api/v1/admin/products/upload', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:8000' : undefined);
+      if (!apiUrl) {
+        throw new Error('NEXT_PUBLIC_API_URL must be set for production deployments');
+      }
+
+      const response = await fetch(`${apiUrl}/api/v1/admin/products/upload`, {
         method: 'POST',
         body: formDataToSend,
       });

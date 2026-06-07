@@ -3,5 +3,8 @@
   command = "npm install && npm run build"
   publish = ".next"
 
+  # Set the production backend URL in Netlify site settings or via the Netlify UI.
+  # NEXT_PUBLIC_API_URL = "https://your-backend.example.com"
+
 [[plugins]]
   package = "@netlify/plugin-nextjs"

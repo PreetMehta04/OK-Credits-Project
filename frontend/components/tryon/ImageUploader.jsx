@@ -30,7 +30,11 @@ export default function ImageUploader({ onUpload }) {
       const formData = new FormData();
       formData.append('file', file);
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:8000' : undefined);
+      if (!apiUrl) {
+        throw new Error('NEXT_PUBLIC_API_URL must be set for production deployments');
+      }
+
       const res = await fetch(`${apiUrl}/api/v1/tryon/upload`, {
         method: 'POST',
         body: formData,
