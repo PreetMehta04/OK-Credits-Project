@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { BarChart2, Package, AlertTriangle, Sparkles, TrendingUp, Users, Upload, X } from 'lucide-react';
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { useAdminStats } from '@/hooks/useRecommendations';
+import { useAdminStats, useLowStock } from '@/hooks/useRecommendations';
 
 const MOCK_SALES_DATA = Array.from({ length: 30 }, (_, i) => ({
   date: `Jun ${i + 1}`,
@@ -24,19 +24,22 @@ const CATEGORIES = ['saree', 'lehenga', 'salwar', 'dupatta', 'blouse'];
 const FABRICS = ['silk', 'cotton', 'chiffon', 'georgette', 'linen', 'banarasi', 'kanjivaram', 'chanderi', 'organza'];
 const REGIONAL_STYLES = ['banarasi', 'kanjivaram', 'paithani', 'bandhani', 'phulkari', 'pochampally', 'chikankari', 'sambalpuri', 'kerala_kasavu', 'patola'];
 
-const STAT_CARDS = [
-  { label: 'Total Revenue', value: '₹4,28,500', change: '+12%', icon: <TrendingUp className="w-5 h-5" />, color: 'text-green-400' },
-  { label: 'Active Products', value: '284', change: '+8', icon: <Package className="w-5 h-5" />, color: 'text-blue-400' },
-  { label: 'AI Sessions Today', value: '1,247', change: '+34%', icon: <Sparkles className="w-5 h-5" />, color: 'text-yellow-400' },
-  { label: 'Try-On Count', value: '342', change: '+22%', icon: <Users className="w-5 h-5" />, color: 'text-pink-400' },
-];
-
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [dateRange, setDateRange] = useState('30');
   const [uploadingProduct, setUploadingProduct] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(null);
   const [uploadError, setUploadError] = useState(null);
+
+  const { stats, isLoading: statsLoading } = useAdminStats(parseInt(dateRange, 10));
+  const { products: lowStockProducts, isLoading: lowStockLoading } = useLowStock(5);
+
+  const statCards = [
+    { label: 'Total Revenue', value: statsLoading ? 'Loading...' : `₹${stats.total_revenue.toLocaleString('en-IN')}`, change: '+12%', icon: <TrendingUp className="w-5 h-5" />, color: 'text-green-400' },
+    { label: 'Active Products', value: statsLoading ? 'Loading...' : stats.active_products.toString(), change: '+8', icon: <Package className="w-5 h-5" />, color: 'text-blue-400' },
+    { label: 'AI Sessions', value: statsLoading ? 'Loading...' : stats.ai_sessions_today.toString(), change: '+34%', icon: <Sparkles className="w-5 h-5" />, color: 'text-yellow-400' },
+    { label: 'Try-On Count', value: statsLoading ? 'Loading...' : stats.tryon_count.toString(), change: '+22%', icon: <Users className="w-5 h-5" />, color: 'text-pink-400' },
+  ];
   
   const [formData, setFormData] = useState({
     productCode: '',
@@ -180,7 +183,7 @@ export default function AdminDashboard() {
 
             {/* Stat cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-              {STAT_CARDS.map((stat, i) => (
+              {statCards.map((stat, i) => (
                 <motion.div
                   key={stat.label}
                   className="glass rounded-2xl p-5"
@@ -259,22 +262,28 @@ export default function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {[
-                      { code: 'KSK012', name: 'Kanjivaram Ruby Red', fabric: 'Silk', stock: 2 },
-                      { code: 'BNR089', name: 'Banarasi Gold Zari', fabric: 'Banarasi', stock: 3 },
-                      { code: 'CHF045', name: 'Chiffon Rose Pink', fabric: 'Chiffon', stock: 1 },
-                    ].map((row) => (
-                      <tr key={row.code} className="border-b border-white/5 hover:bg-white/5">
-                        <td className="py-3 font-mono text-yellow-400">{row.code}</td>
-                        <td className="py-3 text-white">{row.name}</td>
-                        <td className="py-3 text-slate-400">{row.fabric}</td>
-                        <td className="py-3 text-right">
-                          <span className="bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full text-xs font-medium">
-                            {row.stock} left
-                          </span>
-                        </td>
+                    {lowStockLoading ? (
+                      <tr>
+                        <td colSpan={4} className="py-4 text-center text-slate-500">Loading stock alerts...</td>
                       </tr>
-                    ))}
+                    ) : lowStockProducts.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="py-4 text-center text-slate-500">All products have sufficient stock.</td>
+                      </tr>
+                    ) : (
+                      lowStockProducts.map((row) => (
+                        <tr key={row.id || row.product_code} className="border-b border-white/5 hover:bg-white/5">
+                          <td className="py-3 font-mono text-yellow-400">{row.product_code}</td>
+                          <td className="py-3 text-white">{row.name}</td>
+                          <td className="py-3 text-slate-400">{row.fabric ? row.fabric.toUpperCase() : 'N/A'}</td>
+                          <td className="py-3 text-right">
+                            <span className="bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full text-xs font-medium">
+                              {row.stock_quantity} left
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>

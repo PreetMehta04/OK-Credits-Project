@@ -38,7 +38,8 @@ class AuthService:
         if not user.is_active:
             raise HTTPException(status_code=400, detail="Account is deactivated")
 
-        payload = {"sub": str(user.id), "email": user.email, "role": user.role}
+        role_value = user.role.value if hasattr(user.role, "value") else user.role
+        payload = {"sub": str(user.id), "email": user.email, "role": role_value}
         return TokenResponse(
             access_token=create_access_token(payload),
             refresh_token=create_refresh_token(payload),

@@ -3,9 +3,10 @@ Recommendation Engine — main orchestrator
 """
 import logging
 from typing import List, Dict, Any
-from ai_services.recommendation.embeddings import generate_text_embedding, generate_product_embedding
-from ai_services.recommendation.vector_store import vector_store
-from ai_services.recommendation.ranker import score_products
+from recommendation.embeddings import generate_text_embedding, generate_product_embedding
+from recommendation.vector_store import vector_store
+from recommendation.ranker import score_products
+
 
 logger = logging.getLogger(__name__)
 

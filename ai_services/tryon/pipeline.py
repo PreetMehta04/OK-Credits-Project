@@ -7,10 +7,10 @@ import logging
 import httpx
 from PIL import Image
 
-from ai_services.tryon.pose_estimator import estimate_pose, validate_pose
-from ai_services.tryon.segmentation import segment_person
-from ai_services.tryon.cloth_warper import warp_saree
-from ai_services.tryon.diffusion_inpaint import run_inpainting
+from tryon.pose_estimator import estimate_pose, validate_pose
+from tryon.segmentation import segment_person
+from tryon.cloth_warper import warp_saree
+from tryon.diffusion import run_inpainting
 
 logger = logging.getLogger(__name__)
 

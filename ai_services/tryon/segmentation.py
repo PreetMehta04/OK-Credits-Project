@@ -37,7 +37,7 @@ def segment_person(image_bytes: bytes) -> dict:
     logger.info("Body segmentation called — using placeholder mask (U2Net not active)")
 
     # ── ACTIVATE U2NET ───────────────────────────────────────
-    # from ai_services.tryon._u2net_helper import run_u2net
+    # from tryon._u2net_helper import run_u2net
     # img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
     # mask = run_u2net(img)  # returns PIL Image, mode='L'
     # return {"mask": mask, "has_person": True}

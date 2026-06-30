@@ -38,6 +38,7 @@ export const productApi = {
   getById: (id) => api.get(`/products/${id}`),
   search: (params) => api.get('/products', { params }),   // same endpoint, supports all filter params
   trending: () => api.get('/products/trending'),
+  lowStock: (threshold) => api.get('/admin/products/low-stock', { params: { threshold } }),
 };
 
 // Recommendation / Chat API

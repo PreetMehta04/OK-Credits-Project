@@ -4,8 +4,10 @@ from pathlib import Path
 from typing import List, Optional
 from decimal import Decimal
 
+from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, Form
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, func
 
 import openai
 
@@ -13,6 +15,10 @@ from app.config import settings
 # API key paste here in backend/.env as OPENAI_API_KEY
 openai.api_key = settings.OPENAI_API_KEY
 from app.database import get_db
+from app.dependencies import get_current_user
+from app.models.product import Product
+from app.models.user import User
+from app.models.recommendation import RecommendationSession, TryOnJob, AnalyticsEvent
 from app.schemas.product import ProductSearchRequest, PaginatedProductResponse, ProductResponse, ProductCreateRequest, ProductImage
 from app.schemas.recommendation import (
     ChatRequest,
@@ -21,9 +27,11 @@ from app.schemas.recommendation import (
     TryOnJobResponse,
     TryOnStatusResponse,
 )
+from app.schemas.user import RegisterRequest, LoginRequest, TokenResponse, UserResponse
 from app.services.product_service import product_service
 from app.services.recommendation_service import recommendation_service
 from app.services.tryon_service import tryon_service
+from app.services.auth_service import auth_service
 
 api_router = APIRouter()
 
@@ -91,6 +99,77 @@ async def recommend_trending(db: AsyncSession = Depends(get_db)):
     return recommendations
 
 
+@api_router.post("/auth/register", response_model=UserResponse)
+async def register_user(
+    request: RegisterRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    user = await auth_service.register(db, request)
+    await db.flush()
+    await db.refresh(user)
+    return user
+
+
+@api_router.post("/auth/login", response_model=TokenResponse)
+async def login_user(
+    request: LoginRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    return await auth_service.login(db, request)
+
+
+@api_router.get("/auth/me", response_model=UserResponse)
+async def current_user(current_user: User = Depends(get_current_user)):
+    return current_user
+
+
+@api_router.get("/analytics/sales")
+async def analytics_sales(days: int = 30, db: AsyncSession = Depends(get_db)):
+    cutoff = datetime.utcnow() - timedelta(days=days)
+    query = select(AnalyticsEvent).where(
+        AnalyticsEvent.event_type == "sale",
+        AnalyticsEvent.created_at >= cutoff,
+    )
+    result = await db.execute(query)
+    sales = result.scalars().all()
+    total_sales = 0.0
+    orders = 0
+    for event in sales:
+        metadata = event.event_metadata or {}
+        amount = metadata.get("amount", 0)
+        try:
+            total_sales += float(amount)
+            orders += 1
+        except (TypeError, ValueError):
+            continue
+
+    average_order_value = total_sales / orders if orders else 0.0
+    return {
+        "days": days,
+        "total_sales": total_sales,
+        "orders": orders,
+        "average_order_value": average_order_value,
+    }
+
+
+@api_router.get("/analytics/ai-usage")
+async def analytics_ai_usage(days: int = 30, db: AsyncSession = Depends(get_db)):
+    cutoff = datetime.utcnow() - timedelta(days=days)
+    session_count_q = select(func.count()).select_from(RecommendationSession).where(
+        RecommendationSession.created_at >= cutoff
+    )
+    tryon_count_q = select(func.count()).select_from(TryOnJob).where(
+        TryOnJob.created_at >= cutoff
+    )
+    session_count_result = await db.execute(session_count_q)
+    tryon_count_result = await db.execute(tryon_count_q)
+    return {
+        "days": days,
+        "chat_sessions": session_count_result.scalar() or 0,
+        "tryon_requests": tryon_count_result.scalar() or 0,
+    }
+
+
 @api_router.post("/tryon/upload")
 async def upload_tryon_image(file: UploadFile = File(...)):
     suffix = Path(file.filename).suffix or ".bin"
@@ -113,6 +192,33 @@ async def generate_tryon(
 @api_router.get("/tryon/status/{job_id}", response_model=TryOnStatusResponse)
 async def tryon_status(job_id: str, db: AsyncSession = Depends(get_db)):
     return await tryon_service.get_status(db, job_id)
+
+
+@api_router.get("/admin/products/low-stock", response_model=List[ProductResponse])
+async def admin_low_stock(
+    threshold: int = 5,
+    db: AsyncSession = Depends(get_db),
+):
+    """Admin endpoint to get low stock products"""
+    products = await product_service.get_low_stock(db, threshold)
+    return [
+        ProductResponse(
+            id=str(product.id),
+            product_code=product.product_code,
+            name=product.name,
+            category=product.category,
+            fabric=product.fabric,
+            price=float(product.price),
+            discount_price=float(product.discount_price) if product.discount_price else None,
+            stock_quantity=product.stock_quantity,
+            description=product.description,
+            regional_style=product.regional_style,
+            blouse_included=product.blouse_included,
+            images=product.images,
+            trending_score=product.trending_score,
+        )
+        for product in products
+    ]
 
 
 @api_router.post("/admin/products/upload", response_model=ProductResponse)

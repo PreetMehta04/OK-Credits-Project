@@ -8,7 +8,7 @@ from typing import List, Tuple
 from PIL import Image
 import io
 
-from ai_services.vision.clip_embeddings import generate_image_embedding, generate_text_embedding, CLIP_DIM
+from vision.clip_embeddings import generate_image_embedding, generate_text_embedding, CLIP_DIM
 
 logger = logging.getLogger(__name__)
 

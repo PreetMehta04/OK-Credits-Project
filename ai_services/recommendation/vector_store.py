@@ -7,7 +7,7 @@ import json
 import os
 import logging
 from typing import List, Tuple, Optional
-from ai_services.recommendation.embeddings import EMBEDDING_DIM
+from recommendation.embeddings import EMBEDDING_DIM
 
 logger = logging.getLogger(__name__)
 
